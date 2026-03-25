@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZaneyProxy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #7c6cff;
+      --accent2: #ff6cb0;
+      --text: #e8e8f0;
+      --muted: #6b6b88;
+      --green: #4fffb0;
+      --red: #ff4f6b;
+      --yellow: #ffd166;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+    body::before, body::after {
+      content: ''; position: fixed; border-radius: 50%;
+      filter: blur(130px); opacity: 0.1; pointer-events: none; z-index: 0;
+      animation: drift 14s ease-in-out infinite alternate;
+    }
+    body::before { width: 550px; height: 550px; background: var(--accent); top: -180px; left: -120px; }
+    body::after  { width: 450px; height: 450px; background: var(--accent2); bottom: -130px; right: -80px; animation-delay: -7s; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(50px,35px) scale(1.08); } }
+
+    header { position: relative; z-index: 1; padding: 2.5rem 1.5rem 1rem; text-align: center; }
+    .logo { font-family: var(--sans); font-weight: 800; font-size: clamp(2.2rem, 8vw, 4rem); letter-spacing: -0.03em; line-height: 1; }
+    .logo-z { color: var(--accent); }
+    .logo-p { color: var(--accent2); }
+    .tagline { margin-top: 0.4rem; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
+
+    main { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 0.5rem 1.25rem 3rem; display: flex; flex-direction: column; gap: 1rem; }
+
+    /* Setup banner */
+    .setup-banner {
+      background: rgba(255,209,102,0.08);
+      border: 1px solid rgba(255,209,102,0.3);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--yellow);
+      line-height: 1.7;
+    }
+    .setup-banner strong { font-weight: 700; }
+    .setup-banner a { color: var(--yellow); }
+    .setup-banner .worker-input-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+    .setup-banner input {
+      flex: 1; background: var(--surface2); border: 1px solid rgba(255,209,102,0.3);
+      border-radius: 6px; padding: 0.45rem 0.7rem;
+      font-family: var(--mono); font-size: 0.75rem; color: var(--text); outline: none;
+    }
+    .setup-banner input:focus { border-color: var(--yellow); }
+    .setup-banner button {
+      background: rgba(255,209,102,0.15); border: 1px solid rgba(255,209,102,0.4);
+      border-radius: 6px; padding: 0.45rem 0.9rem;
+      font-family: var(--mono); font-size: 0.75rem; color: var(--yellow); cursor: pointer;
+      transition: background 0.15s;
+    }
+    .setup-banner button:hover { background: rgba(255,209,102,0.25); }
+    .setup-banner.connected { background: rgba(79,255,176,0.06); border-color: rgba(79,255,176,0.25); color: var(--green); }
+
+    .card-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.22em; color: var(--muted); margin-bottom: 0.65rem; text-transform: uppercase; }
+
+    .search-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; transition: border-color 0.2s; }
+    .search-card:focus-within { border-color: var(--accent); }
+    .input-row { display: flex; gap: 0.65rem; }
+    #urlInput {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.8rem 1rem; font-family: var(--mono); font-size: 0.88rem; color: var(--text);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #urlInput::placeholder { color: var(--muted); }
+    #urlInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,108,255,0.14); }
+    #goBtn {
+      background: var(--accent); border: none; border-radius: 8px; padding: 0.8rem 1.3rem;
+      color: #fff; font-family: var(--mono); font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.06em; cursor: pointer; display: flex; align-items: center; gap: 0.45rem;
+      transition: background 0.15s, transform 0.1s; white-space: nowrap;
+    }
+    #goBtn svg { width: 15px; height: 15px; }
+    #goBtn:hover { background: #9080ff; }
+    #goBtn:active { transform: scale(0.97); }
+
+    .quick-links { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.85rem; }
+    .ql-label { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+    .ql-btn {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.28rem 0.65rem; color: var(--muted); font-family: var(--mono); font-size: 0.73rem;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .ql-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    .mode-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.4rem; }
+    .mode-pills { display: flex; gap: 0.55rem; flex-wrap: wrap; }
+    .mode-pill {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.42rem 1rem; color: var(--muted); font-family: var(--mono); font-size: 0.75rem;
+      cursor: pointer; display: flex; align-items: center; gap: 0.38rem; transition: all 0.15s;
+    }
+    .mode-pill.active { background: rgba(124,108,255,0.14); border-color: var(--accent); color: var(--accent); }
+    .mode-pill:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.75; }
+
+    .frame-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; height: 68vh; min-height: 380px; }
+    .frame-wrap.hidden { display: none; }
+    .frame-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.45rem 0.65rem; display: flex; align-items: center; gap: 0.38rem; }
+    .fbar-btn {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.12s, border-color 0.12s; flex-shrink: 0;
+    }
+    .fbar-btn:hover { color: var(--text); border-color: var(--accent); }
+    .fbar-btn.close:hover { color: var(--red); border-color: var(--red); }
+    .frame-url-display {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.28rem 0.7rem; font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #proxyFrame { flex: 1; border: none; background: #fff; width: 100%; }
+
+    .status-bar { display: flex; align-items: center; gap: 0.55rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 1rem; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+    .status-bar.hidden { display: none; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .status-dot.loading { background: var(--accent); animation: blink 1s infinite; }
+    .status-dot.ok  { background: var(--green); }
+    .status-dot.err { background: var(--red); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    footer { position: relative; z-index: 1; text-align: center; padding: 1rem; font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+    .sep { margin: 0 0.45rem; opacity: 0.35; }
+
+    @media (max-width: 500px) { .input-row { flex-direction: column; } #goBtn { justify-content: center; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-z">Z</span><span>aney</span><span class="logo-p">Proxy</span></div>
+  <div class="tagline">Powered by Cloudflare Workers</div>
+</header>
+
+<main>
+
+  <!-- Worker setup banner -->
+  <div class="setup-banner" id="setupBanner">
+    <strong>⚙️ One-time setup:</strong> Enter your Cloudflare Worker URL below.<br>
+    Don't have one yet? See the <strong>README.md</strong> — takes ~5 minutes, free.<br>
+    <div class="worker-input-row">
+      <input type="text" id="workerUrlInput" placeholder="https://zaneyproxy.YOUR-NAME.workers.dev" spellcheck="false" autocomplete="off" />
+      <button id="saveWorkerBtn">Save</button>
+    </div>
+  </div>
+
+  <!-- Search card -->
+  <div class="search-card">
+    <div class="card-label">Destination</div>
+    <div class="input-row">
+      <input type="text" id="urlInput" placeholder="Enter URL or search term…" autocomplete="off" spellcheck="false" />
+      <button id="goBtn">
+        <span>GO</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="quick-links">
+      <span class="ql-label">Quick:</span>
+      <button class="ql-btn" data-url="https://google.com">Google</button>
+      <button class="ql-btn" data-url="https://wikipedia.org">Wikipedia</button>
+      <button class="ql-btn" data-url="https://reddit.com">Reddit</button>
+      <button class="ql-btn" data-url="https://youtube.com">YouTube</button>
+      <button class="ql-btn" data-url="https://github.com">GitHub</button>
+      <button class="ql-btn" data-url="https://news.ycombinator.com">HN</button>
+    </div>
+  </div>
+
+  <!-- Mode selector -->
+  <div class="mode-card">
+    <div class="card-label">Mode</div>
+    <div class="mode-pills">
+      <button class="mode-pill active" data-mode="worker">
+        <span class="pill-dot"></span>Worker Proxy
+      </button>
+      <button class="mode-pill" data-mode="direct">
+        <span class="pill-dot"></span>Direct Tab
+      </button>
+    </div>
+  </div>
+
+  <!-- Frame -->
+  <div class="frame-wrap hidden" id="frameWrap">
+    <div class="frame-bar">
+      <button class="fbar-btn" id="btnBack" title="Back">&#8592;</button>
+      <button class="fbar-btn" id="btnFwd" title="Forward">&#8594;</button>
+      <button class="fbar-btn" id="btnReload" title="Reload">&#8635;</button>
+      <div class="frame-url-display" id="frameUrlDisplay">—</div>
+      <button class="fbar-btn" id="btnNewTab" title="Open in new tab">&#x2197;</button>
+      <button class="fbar-btn close" id="btnClose" title="Close">&#x2715;</button>
+    </div>
+    <iframe id="proxyFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar hidden" id="statusBar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Ready</span>
+  </div>
+
+</main>
+
+<footer>ZaneyProxy <span class="sep">|</span> Personal Use Only <span class="sep">|</span> v2.0</footer>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'zaneyproxy_worker_url';
+
+  var mode       = 'worker';
+  var navHistory = [];
+  var histIdx    = -1;
+  var currentUrl = '';
+  var workerUrl  = '';
+
+  // DOM
+  var urlInput      = document.getElementById('urlInput');
+  var goBtn         = document.getElementById('goBtn');
+  var frameWrap     = document.getElementById('frameWrap');
+  var proxyFrame    = document.getElementById('proxyFrame');
+  var frameUrlDisp  = document.getElementById('frameUrlDisplay');
+  var statusBar     = document.getElementById('statusBar');
+  var statusDot     = document.getElementById('statusDot');
+  var statusText    = document.getElementById('statusText');
+  var setupBanner   = document.getElementById('setupBanner');
+  var workerUrlInput= document.getElementById('workerUrlInput');
+  var saveWorkerBtn = document.getElementById('saveWorkerBtn');
+
+  // ── Worker URL persistence ──────────────────────────────
+  function loadWorkerUrl() {
+    try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; }
+  }
+  function saveWorkerUrl(url) {
+    try { localStorage.setItem(STORAGE_KEY, url); } catch (e) {}
+  }
+
+  function applyWorkerUrl(url) {
+    workerUrl = url.trim().replace(/\/$/, '');
+    if (workerUrl) {
+      setupBanner.classList.add('connected');
+      setupBanner.innerHTML = '&#x2705; Worker connected: <strong>' + escHtml(workerUrl) + '</strong> &nbsp;<button id="changeWorkerBtn" style="margin-left:0.5rem">Change</button>';
+      document.getElementById('changeWorkerBtn').addEventListener('click', function () {
+        setupBanner.classList.remove('connected');
+        renderSetupForm();
+      });
+    }
+  }
+
+  function renderSetupForm() {
+    setupBanner.innerHTML =
+      '<strong>&#x2699;&#xfe0f; One-time setup:</strong> Enter your Cloudflare Worker URL below.<br>' +
+      "Don't have one yet? See the <strong>README.md</strong> \u2014 takes ~5 minutes, free.<br>" +
+      '<div class="worker-input-row">' +
+        '<input type="text" id="workerUrlInput" placeholder="https://zaneyproxy.YOUR-NAME.workers.dev" spellcheck="false" autocomplete="off" />' +
+        '<button id="saveWorkerBtn">Save</button>' +
+      '</div>';
+    document.getElementById('saveWorkerBtn').addEventListener('click', onSaveWorker);
+  }
+
+  function onSaveWorker() {
+    var val = document.getElementById('workerUrlInput').value.trim();
+    if (!val) return;
+    if (!/^https?:\/\//i.test(val)) val = 'https://' + val;
+    saveWorkerUrl(val);
+    applyWorkerUrl(val);
+  }
+
+  // ── URL helpers ────────────────────────────────────────
+  function normalizeUrl(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+    var looksLikeUrl = /^https?:\/\//i.test(raw) || /^www\./i.test(raw) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/|$)/.test(raw);
+    if (!looksLikeUrl) return 'https://www.google.com/search?q=' + encodeURIComponent(raw);
+    if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+    try { new URL(raw); return raw; } catch (e) { return null; }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Status ─────────────────────────────────────────────
+  function setStatus(msg, type) {
+    statusBar.classList.remove('hidden');
+    statusDot.className = 'status-dot' + (type ? ' ' + type : '');
+    statusText.textContent = msg;
+  }
+  function hideStatus() { statusBar.classList.add('hidden'); }
+
+  // ── Frame ──────────────────────────────────────────────
+  function showFrame(url) {
+    frameWrap.classList.remove('hidden');
+    frameUrlDisp.textContent = url;
+  }
+  function hideFrame() {
+    frameWrap.classList.add('hidden');
+    proxyFrame.src = 'about:blank';
+    hideStatus();
+  }
+
+  // ── Core load ──────────────────────────────────────────
+  function loadUrl(url, push) {
+    currentUrl = url;
+    urlInput.value = url;
+
+    if (push) {
+      navHistory = navHistory.slice(0, histIdx + 1);
+      navHistory.push(url);
+      histIdx = navHistory.length - 1;
+    }
+
+    if (mode === 'direct') {
+      window.open(url, '_blank');
+      setStatus('Opened in new tab: ' + url, 'ok');
+      setTimeout(hideStatus, 3000);
+      return;
+    }
+
+    if (!workerUrl) {
+      setStatus('No worker URL set \u2014 fill in the setup box above first.', 'err');
+      return;
+    }
+
+    var proxyEndpoint = workerUrl + '/?url=' + encodeURIComponent(url);
+    setStatus('Fetching via worker\u2026', 'loading');
+    showFrame(url);
+    proxyFrame.src = proxyEndpoint;
+  }
+
+  function navigate() {
+    var url = normalizeUrl(urlInput.value);
+    if (!url) { setStatus('Enter a valid URL or search term.', 'err'); return; }
+    loadUrl(url, true);
+  }
+
+  // ── Events ─────────────────────────────────────────────
+  goBtn.addEventListener('click', navigate);
+  urlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') navigate(); });
+
+  document.querySelectorAll('.ql-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      urlInput.value = btn.getAttribute('data-url');
+      navigate();
+    });
+  });
+
+  document.querySelectorAll('.mode-pill').forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      document.querySelectorAll('.mode-pill').forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      mode = pill.getAttribute('data-mode');
+    });
+  });
+
+  document.getElementById('btnBack').addEventListener('click', function () {
+    if (histIdx > 0) { histIdx--; loadUrl(navHistory[histIdx], false); }
+  });
+  document.getElementById('btnFwd').addEventListener('click', function () {
+    if (histIdx < navHistory.length - 1) { histIdx++; loadUrl(navHistory[histIdx], false); }
+  });
+  document.getElementById('btnReload').addEventListener('click', function () {
+    if (currentUrl) loadUrl(currentUrl, false);
+  });
+  document.getElementById('btnNewTab').addEventListener('click', function () {
+    if (currentUrl) window.open(currentUrl, '_blank');
+  });
+  document.getElementById('btnClose').addEventListener('click', hideFrame);
+
+  proxyFrame.addEventListener('load', function () {
+    if (proxyFrame.src && proxyFrame.src !== 'about:blank') {
+      setStatus('Loaded \u00b7 ' + currentUrl, 'ok');
+      setTimeout(hideStatus, 3000);
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l') { e.preventDefault(); urlInput.focus(); urlInput.select(); }
+    if (e.key === 'Escape') hideFrame();
+  });
+
+  // ── Init ───────────────────────────────────────────────
+  saveWorkerBtn.addEventListener('click', onSaveWorker);
+
+  var saved = loadWorkerUrl();
+  if (saved) {
+    applyWorkerUrl(saved);
+  }
+
+  // Deep-link
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('url')) {
+      var target = normalizeUrl(params.get('url'));
+      if (target) { urlInput.value = target; loadUrl(target, true); }
+    }
+  }());
+
+  urlInput.focus();
+}());
+</script>
+</body>
+</html>
